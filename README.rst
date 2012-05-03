@@ -19,7 +19,7 @@ Usage example
 
 Example server
 
-.. code-block:: javascript
+.. code-block::
 
     express = require('express');
     connect = require('connect'); // use connect v1.x
@@ -48,7 +48,7 @@ Example server
 
 On the client
 
-.. code-block:: javascript
+.. code-block::
 
     socket = io.connect("/iorooms");
     
@@ -104,7 +104,7 @@ If you want to control who can connect to your socket or room, override one or m
 
 Example:
 
-.. code-block:: javascript
+.. code-block::
 
     var iorooms = new RoomManager("/iorooms", io, sessionStore)
     iorooms.authorizeConnection = function(session, callback) {
@@ -120,7 +120,7 @@ Room messages
 
 Respond to messages within or between rooms with the following shortcut:
 
-.. code-block:: javascript
+.. code-block::
 
     iorooms.on("message", function(socket, data) {
         // ... socket.session contains the session
@@ -128,7 +128,7 @@ Respond to messages within or between rooms with the following shortcut:
 
 This is equivalent to:
 
-.. code-block:: javascript
+.. code-block::
 
     io.of(routename).on('connection', function(socket) {
         socket.on("message", function(data) {
