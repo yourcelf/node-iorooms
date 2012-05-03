@@ -70,34 +70,32 @@ On the client::
         });
     });
 
-See `testserver.coffee` and `views/test.jade`, as well as the behavior tests in `spec/iorooms.spec.coffee`, for a full client/server example.
+See ``testserver.coffee`` and ``views/test.jade``, as well as the behavior tests in ``spec/iorooms.spec.coffee``, for a full client/server example.
 
 RoomManager
 -----------
 
-`RoomManager` is a class for handling the establishment of sockets, and the connection of sockets to express sessions.
+``RoomManager`` is a class for handling the establishment of sockets, and the connection of sockets to express sessions.
 
- * constructor: `new RoomManager(route, io, store, options)`
+Constructor: ``new RoomManager(route, io, store, options)``
 
-   * `route`: A string describing the channel name to use.
-   * `io`: A socket.io object.
-   * `store`: A session store, such as `connect.session.MemoryStore` or the
-     session store from `redis-connect`.
-   * `options`: Only option for now is `logger`, which is an object which
-     defines `error` and `debug` logger handles to use.
+* ``route``: A string describing the channel name to use.
+* ``io``: A socket.io object.
+* ``store``: A session store, such as ``connect.session.MemoryStore`` or the session store from ``redis-connect``.
+* ``options``: Only option for now is ``logger``, which is an object which defines ``error`` and ``debug`` logger handles to use.
 
 Authorization
 ~~~~~~~~~~~~~
 
 If you want to control who can connect to your socket or room, override one or more of the following methods on `RoomManager`.  By default, all requests to establish a socket or join a room are allowed:
 
- * `authorizeConnection(session, callback)`: Should the user with the given
-   `session` be allowed to connect to the socket at all?  If so, call
-   `callback(null)`.  Otherwise, call `callback(error)`, where error is
-   non-null.
- * `authorizeJoinRoom(session, name, callback)`: Should the user with the given
-   `session` be allowed to join the room `name`?  If so, call `callback(null)`.
-   Otherwise, call `callback(error)`, where error is non-null.
+* ``authorizeConnection(session, callback)``: Should the user with the given
+  ``session`` be allowed to connect to the socket at all?  If so, call
+  ``callback(null)``.  Otherwise, call ``callback(error)``, where error is
+  non-null.
+* ``authorizeJoinRoom(session, name, callback)``: Should the user with the given
+  ``session`` be allowed to join the room ``name``?  If so, call ``callback(null)``.
+  Otherwise, call ``callback(error)``, where error is non-null.
 
 Example::
 
@@ -130,4 +128,4 @@ This is equivalent to::
 Tests
 -----
 
-Tests are written with `mocha`.  Run tests using `mocha --compilers coffee:coffee-script spec/*` (or via the shortcut `npm test`).  Since the tests spawn a couple of zombie.js instances and communicate with the server, if you have a slow computer, you may need to increase the timeout, by adding `--timeout 5000` or similar to the mocha command.
+Tests are written with ``mocha``.  Run tests using ``mocha --compilers coffee:coffee-script spec/*`` (or via the shortcut ``npm test``).  Since the tests spawn a couple of zombie.js instances and communicate with the server, if you have a slow computer, you may need to increase the timeout, by adding ``--timeout 5000`` or similar to the mocha command.
