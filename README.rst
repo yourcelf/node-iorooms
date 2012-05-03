@@ -17,9 +17,7 @@ session standard HTTP requests through express use.
 Usage example
 -------------
 
-Example server
-
-.. code-block::
+Example server::
 
     express = require('express');
     connect = require('connect'); // use connect v1.x
@@ -46,9 +44,7 @@ Example server
         // `data` contains the message from the client
     });
 
-On the client
-
-.. code-block::
+On the client::
 
     socket = io.connect("/iorooms");
     
@@ -102,9 +98,7 @@ If you want to control who can connect to your socket or room, override one or m
    `session` be allowed to join the room `name`?  If so, call `callback(null)`.
    Otherwise, call `callback(error)`, where error is non-null.
 
-Example:
-
-.. code-block::
+Example::
 
     var iorooms = new RoomManager("/iorooms", io, sessionStore)
     iorooms.authorizeConnection = function(session, callback) {
@@ -118,17 +112,13 @@ Example:
 Room messages
 ~~~~~~~~~~~~~
 
-Respond to messages within or between rooms with the following shortcut:
-
-.. code-block::
+Respond to messages within or between rooms with the following shortcut::
 
     iorooms.on("message", function(socket, data) {
         // ... socket.session contains the session
     });
 
-This is equivalent to:
-
-.. code-block::
+This is equivalent to::
 
     io.of(routename).on('connection', function(socket) {
         socket.on("message", function(data) {
