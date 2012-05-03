@@ -78,6 +78,7 @@ RoomManager
 `RoomManager` is a class for handling the establishment of sockets, and the connection of sockets to express sessions.
 
  * constructor: `new RoomManager(route, io, store, options)`
+
    * `route`: A string describing the channel name to use.
    * `io`: A socket.io object.
    * `store`: A session store, such as `connect.session.MemoryStore` or the
