@@ -4,6 +4,7 @@
 
 events      = require 'events'
 parseCookie = require('connect').utils.parseCookie
+_           = require 'underscore'
 
 class RoomManager
   logger:
@@ -41,6 +42,11 @@ class RoomManager
     # value (probably an error message) as the first argument.
     callback(null)
 
+  saveSession: (session, callback) =>
+    @store.set session.sid, session, (err) =>
+      if err? then @logger.error "Error storing session"
+      callback?(err)
+
   setIOAuthorization: =>
     @io.set "authorization", (handshake, callback) =>
       @logger.debug "Handshake"
@@ -57,9 +63,8 @@ class RoomManager
             handshake.session.sid = sessionID
             @authorizeConnection session, (err) =>
               if err? then return callback(err, false)
-              @store.set sessionID, session, (err) =>
+              @saveSession session, (err) =>
                 if err?
-                  @logger.error "Session store error", err
                   callback(err, false)
                 else
                   callback(null, true)
@@ -94,16 +99,17 @@ class RoomManager
       socket.emit "error", error: "Room not specified or session not found."
       return
     @authorizeJoinRoom socket.session, data.room, (err) =>
-      if err?
-        socket.emit "error", error: err
-      else
-        socket.join data.room
-        @broadcastJoined(data, socket)
+      if err? then return socket.emit "error", error: err
+      unless socket.session.rooms?
+        socket.session.rooms = []
+      unless _.contains socket.session.rooms, data.room
+        socket.session.rooms.push(data.room)
+        @saveSession(socket.session)
+      socket.join data.room
+      @broadcastJoined(data, socket)
 
   broadcastJoined: (data, socket) =>
     users = @getUsers(data.room, socket)
-    for id, user of users.others
-      users.wtf = "WTF?!"
     socket.emit 'users', users
     unless users.others[socket.session.user_id]
       socket.broadcast.to(data.room).emit 'user_joined', users.self
@@ -118,6 +124,8 @@ class RoomManager
       socket.emit "error", error: "Room not specified or sessionID not found"
       return
     socket.leave(data.room)
+    socket.session.rooms = _.reject socket.session.rooms, (a) -> a == data.room
+    @saveSession(socket.session)
     users = @getUsers(data.room, socket)
     # Broadcast that we've left, if we have no other connected sockets.
     unless users.others[socket.session.user_id]
@@ -141,11 +149,8 @@ class RoomManager
         socket.emit "error", error: err
       else
         socket.session.name = data.name
-        @store.set socket.session.sid, socket.session, (err) =>
-          if err?
-            logger.error "Session store error", err
-          else
-            @broadcastUsername(data, socket)
+        @saveSession socket.session, (err) =>
+          @broadcastUsername(data, socket) unless err?
 
   broadcastUsername: (data, socket) =>
     socket.broadcast.to(socket.room).emit 'username', {

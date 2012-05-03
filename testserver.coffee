@@ -38,4 +38,7 @@ start = ->
 
   return {app, io, iorooms}
 
+if require.main == module
+  start()
+
 module.exports = { start }
