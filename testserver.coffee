@@ -31,7 +31,7 @@ start = ->
     else
       callback(null)
 
-  iorooms.on "message", (socket, data) ->
+  iorooms.onChannel "message", (socket, data) ->
     socket.broadcast.to(data.room).emit "message", data
 
   app.listen 3000

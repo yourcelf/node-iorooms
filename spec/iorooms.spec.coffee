@@ -23,7 +23,7 @@ describe "iorooms", ->
     @browser2.visit "http://localhost:3000", ->
 
     waitFor =>
-      socketIDs = (socketID for socketID, session of @server.iorooms.socketSessionMap)
+      socketIDs = (socketID for socketID, socket of @server.io.roomClients)
       if socketIDs.length == 2
         done()
         return true
@@ -35,26 +35,20 @@ describe "iorooms", ->
     @browser.pressButton("#joinRoom")
     @browser2.pressButton("#joinRoom")
 
-
     waitFor =>
-      if @server.io.rooms['/iorooms/room']?.length == 2
-        userIds = (id for id, obj of @server.iorooms.getUsers("room").others)
-        expect(_.unique(userIds)).to.eql(userIds)
-        expect(userIds.length).to.be(2)
-        for socketID, session of @server.iorooms.socketSessionMap
+      room = @server.io.rooms["/iorooms/room"]
+      joined = 0
+      browsers = [@browser, @browser2]
+      for browser in browsers
+        socketID = browser.evaluate("socket.socket.sessionid")
+        if _.contains room, socketID
+          joined += 1
+
+      if joined == browsers.length
+        for sid, sessionStr of @server.iorooms.store.sessions
+          session = JSON.parse(sessionStr)
           expect(session.rooms).to.eql(["room"])
-        done()
-        return true
-
-  it "sets a name", (done) ->
-    @browser.fill("#name", "George")
-    @browser2.fill("#name", "Martha")
-    @browser.pressButton("#setName")
-    @browser2.pressButton("#setName")
-    waitFor =>
-      george_id = @browser.evaluate("window.self_id")
-      martha_users = @browser2.evaluate("window.users")
-      if martha_users[george_id].name == "George"
+          expect(session.sockets.length).to.eql(1)
         done()
         return true
 
@@ -78,14 +72,7 @@ describe "iorooms", ->
 
   it "leaves a room", (done) ->
     @browser.pressButton("#leaveRoom")
-    user_id = @browser.evaluate("window.self_id")
+    socketID = @browser.evaluate("socket.socket.sessionid")
     waitFor =>
-      found = false
-      for socketID, session of @server.iorooms.socketSessionMap
-        if session.user_id == user_id
-          found = true
-          if session.rooms.length == 0
-            done()
-            return true
-      if not found
-        throw "Can't find user id"
+      unless _.contains @server.io.rooms["/iorooms/room"], socketID
+        done()

@@ -5,11 +5,6 @@ html(lang="en")
   body
     div#error
     p
-      | Choose a name:
-      input(type='text', id='name')
-      input(type='button', id='setName', value='Set name')
-
-    p
       | Join a room:
       input(type='text', id='room')
       input(type='button', id='joinRoom', value='Join room')
@@ -32,30 +27,12 @@ html(lang="en")
       // Zombie needs a full URL, not relative.
       // https://github.com/justinlatimer/zombie-socket.io-example
       socket = io.connect(window.location.href + "iorooms");
-      window.users = {};
       socket.on("connect", function() {
         socket.on("error", function(data) {
           $("#error").append(data.error);
         });
         socket.on("message", function(data) {
           $("#messages").append("<p>" + data.message + "</p>");
-        });
-        socket.on("users", function(data) {
-          for (key in data.others) {
-            users[key] = data.others[key];
-          }
-          users[data.self.user_id] = data.self;
-          self_id = data.self.user_id;
-        });
-        socket.on("user_joined", function(data) {
-          users[data.user_id] = data
-        });
-        socket.on("user_left", function(data) {
-          var found = null;
-          delete users[data.user_id];
-        });
-        socket.on("username", function(data) {
-          window.users[data.user_id].name = data.name;
         });
       });
 
@@ -64,10 +41,6 @@ html(lang="en")
       });
       $("#leaveRoom").on("click", function() {
         socket.emit("leave", { room: $("#room").val() });
-      });
-      $("#setName").on("click", function() {
-        users[self_id].name = $("#name").val();
-        socket.emit("username", { name: $("#name").val() });
       });
       $("#sendMessage").on("click", function() {
         socket.emit("message", { message: $("#message").val(), room: $("#room").val() });

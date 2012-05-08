@@ -14,6 +14,8 @@ but every socket gets a `session` property which refers to the express session
 associated with it.  Yay!  Now every socket has a session, and it's the same
 session standard HTTP requests through express use.
 
+Based initially on this blogpost: http://www.danielbaulig.de/socket-ioexpress/
+
 Usage example
 -------------
 
@@ -39,7 +41,7 @@ Example server::
     iorooms = new RoomManager("/iorooms", io, sessionStore);
 
     // Respond to a message
-    iorooms.on("message", function(socket, data) {
+    iorooms.onChannel("message", function(socket, data) {
         // `socket.session` contains the session
         // `data` contains the message from the client
     });
@@ -108,19 +110,19 @@ Example::
         }
     };
 
-Room messages
-~~~~~~~~~~~~~
+Channel messages
+~~~~~~~~~~~~~~~~
 
-Respond to messages within or between rooms with the following shortcut::
+Respond to messages within or between rooms with the shortcut ``RoomManager.onChannel(message, callback)``.  For example, responding to the message "my-message"::
 
-    iorooms.on("message", function(socket, data) {
+    iorooms.onChannel("my-message", function(socket, data) {
         // ... socket.session contains the session
     });
 
 This is equivalent to::
 
     io.of(routename).on('connection', function(socket) {
-        socket.on("message", function(data) {
+        socket.on("my-message", function(data) {
             // ... socket.session contains the session
         });
     });
