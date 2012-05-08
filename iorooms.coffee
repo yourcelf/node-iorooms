@@ -134,4 +134,13 @@ class RoomManager extends events.EventEmitter
     socket.session.sockets = _.reject socket.session.sockets, socket.id
     @saveSession socket.session.sid, socket.session
 
+  getSessionsInRoom: (room) =>
+    sessions = []
+    for sid, sessionStr of @store.sessions
+      session = JSON.parse(sessionStr)
+      if _.contains session.rooms, room
+        sessions.push(session)
+    return sessions
+
+
 module.exports = { RoomManager }

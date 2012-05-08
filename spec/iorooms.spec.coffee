@@ -52,6 +52,19 @@ describe "iorooms", ->
         done()
         return true
 
+  it "finds all sessions in a given room", ->
+    console.log @server
+    sessions = (JSON.parse(sessionStr) for sid, sessionStr of @server.iorooms.store.sessions)
+    inRoom = @server.iorooms.getSessionsInRoom("room")
+    expect(sessions.length).to.eql(inRoom.length)
+    for sess in sessions
+      # Check if inRoom contains the session, using _.isEqual for deep equality.
+      expect(_.any inRoom, (a) -> _.isEqual(sess, a)).to.be(true)
+
+    empty = @server.iorooms.getSessionsInRoom("blah")
+    expect(empty).to.eql([])
+
+
   it "sends a message", (done) ->
     @browser.fill("#message", "Calling Martha")
     @browser.pressButton("#sendMessage")
