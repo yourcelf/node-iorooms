@@ -1,6 +1,6 @@
 {
     "name": "iorooms",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Implementation of session-based rooms for socket.io and express.",
     "author": {
         "name": "Charlie DeTar",
