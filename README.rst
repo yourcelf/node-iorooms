@@ -55,23 +55,6 @@ On the client::
     // leave a room
     socket.emit("leave", {room: "my room"});
 
-    socket.on("connect", function() {
-        // callbacks pertinent to rooms:
-        socket.on("users", function(data) {
-            // data is a structure of people in the room, with properties
-            // "self" and "others".  Emitted to the client after successfully
-            // joining a room.
-        });
-        socket.on("user_joined", function(data) {
-            // data is a structure representing a single user who has just
-            // joined.
-        });
-        socket.on("user_left", function(data) {
-            // data is a structure representing a single user who has just
-            // left.
-        });
-    });
-
 See ``testserver.coffee`` and ``views/test.jade``, as well as the behavior tests in ``spec/iorooms.spec.coffee``, for a full client/server example.
 
 RoomManager
