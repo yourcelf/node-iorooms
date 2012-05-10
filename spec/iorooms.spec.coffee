@@ -16,6 +16,18 @@ describe "iorooms", ->
   after ->
     @server.app.close()
 
+  it "connects and disconnects", (done) ->
+    @browser3 = new Browser()
+    @browser3.visit "http://localhost:3000"
+    waitFor =>
+      socketIDs = (socketID for socketID, socket of @server.io.roomClients)
+      if socketIDs.length == 1
+        @browser3.window.close()
+        @server.app.close()
+        @server = require('../testserver').start()
+        done()
+        return true
+
   it "connects to the socket", (done) ->
     @browser = new Browser()
     @browser2 = new Browser()
@@ -53,7 +65,6 @@ describe "iorooms", ->
         return true
 
   it "finds all sessions in a given room", ->
-    console.log @server
     sessions = (JSON.parse(sessionStr) for sid, sessionStr of @server.iorooms.store.sessions)
     inRoom = @server.iorooms.getSessionsInRoom("room")
     expect(sessions.length).to.eql(inRoom.length)

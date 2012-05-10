@@ -127,10 +127,11 @@ class RoomManager extends events.EventEmitter
 
   disconnect: (socket) =>
     # Disconnect the socket. Leave any rooms that the socket is in.
-    for room, connected of @io.roomClients[socket.id]
-      # chomp off the route part to get the room name.
-      room = room.substring(@route.length + 1)
-      if room then @leave socket, {room: room}
+    if @io.roomClients[socket.id]?
+      for room, connected of @io.roomClients[socket.id]
+        # chomp off the route part to get the room name.
+        room = room.substring(@route.length + 1)
+        if room then @leave socket, {room: room}
     socket.session.sockets = _.reject socket.session.sockets, socket.id
     @saveSession socket.session.sid, socket.session
 

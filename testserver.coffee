@@ -1,4 +1,4 @@
-# This is a simple server for executing jasmine's tests.
+# This is a simple server for executing tests.
 express     = require 'express'
 socketio    = require 'socket.io'
 connect     = require 'connect'
@@ -20,9 +20,7 @@ start = ->
     res.render 'test.jade', layout: false
 
   io = socketio.listen(app, "log level": 0)
-  iorooms = new RoomManager("/iorooms", io, sessionStore, {
-    #logger: { debug: console.log, error: console.log }
-  })
+  iorooms = new RoomManager("/iorooms", io, sessionStore)
   iorooms.authorizeConnection = (session, callback) ->
     # Set a user id, for fun and profit.
     unless session.user_id?
