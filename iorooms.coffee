@@ -63,7 +63,7 @@ class RoomManager extends events.EventEmitter
       # Map socket ID to session on connection.  There may be multiple sockets
       # per session, if one has multiple tabs/windows open.
       socket.session = socket.handshake.session
-      unless socket.session.sockets
+      unless socket.session.sockets?
         socket.session.sockets = []
       socket.session.sockets.push(socket.id)
       socket.on 'join', (data) => @join(socket, data.room)
@@ -115,7 +115,7 @@ class RoomManager extends events.EventEmitter
         otherSocketFound = true
         break
 
-    unless otherSocketFound
+    if (not otherSocketFound) and socket.session.rooms?
       socket.session.rooms = _.reject socket.session.rooms, (a) -> a == room
       @saveSession(socket.session)
 
@@ -131,9 +131,10 @@ class RoomManager extends events.EventEmitter
       for room, connected of @io.roomClients[socket.id]
         # chomp off the route part to get the room name.
         room = room.substring(@route.length + 1)
-        if room then @leave socket, {room: room}
-    socket.session.sockets = _.reject socket.session.sockets, socket.id
-    @saveSession socket.session.sid, socket.session
+        if room then @leave(socket, {room: room})
+    if socket.session.sockets?
+      socket.session.sockets = _.reject(socket.session.sockets, (a) -> a == socket.id)
+      @saveSession(socket.session)
 
   getSessionsInRoom: (room) =>
     sessions = []
