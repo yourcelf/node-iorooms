@@ -110,10 +110,11 @@ class RoomManager extends events.EventEmitter
     # See if this session has socket connected to this room.
     roomClients = @io.rooms["#{@route}/#{room}"]
     otherSocketFound = false
-    for socketID in socket.session.sockets
-      if roomClients[socketID]?
-        otherSocketFound = true
-        break
+    if roomClients?
+      for socketID in socket.session.sockets
+        if roomClients[socketID]?
+          otherSocketFound = true
+          break
 
     if (not otherSocketFound) and socket.session.rooms?
       socket.session.rooms = _.reject socket.session.rooms, (a) -> a == room
