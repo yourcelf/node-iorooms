@@ -57,24 +57,26 @@ describe "iorooms", ->
           joined += 1
 
       if joined == browsers.length
-        for sid, sessionStr of @server.iorooms.store.sessions
-          session = JSON.parse(sessionStr)
-          expect(session.rooms).to.eql(["room"])
-          expect(session.sockets.length).to.eql(1)
+        expect(@server.iorooms.roomSessions["room"].length).to.eql(2)
+        for sid in @server.iorooms.roomSessions["room"]
+          expect(@server.iorooms.sessionRooms[sid]).to.eql(['room'])
+          expect(@server.iorooms.sessionSockets[sid].length).to.eql(1)
         done()
         return true
 
-  it "finds all sessions in a given room", ->
-    sessions = (JSON.parse(sessionStr) for sid, sessionStr of @server.iorooms.store.sessions)
-    inRoom = @server.iorooms.getSessionsInRoom("room")
-    expect(sessions.length).to.eql(inRoom.length)
-    for sess in sessions
-      # Check if inRoom contains the session, using _.isEqual for deep equality.
-      expect(_.any inRoom, (a) -> _.isEqual(sess, a)).to.be(true)
+  it "finds all sessions in a given room", (done) ->
+    sessionIds = @server.iorooms.roomSessions["room"]
+    @server.iorooms.getSessionsInRoom "room", (err, inRoom) =>
+      expect(err).to.be(null)
+      expect(sessionIds.length).to.eql(inRoom.length)
+      for sessid in sessionIds
+        # Check if inRoom contains the session, using _.isEqual for deep equality.
+        expect(_.any inRoom, (s) -> _.isEqual(sessid, s.sid)).to.be(true)
 
-    empty = @server.iorooms.getSessionsInRoom("blah")
-    expect(empty).to.eql([])
-
+      @server.iorooms.getSessionsInRoom "blah", (err, empty) ->
+        expect(err).to.be(null)
+        expect(empty).to.eql([])
+        done()
 
   it "sends a message", (done) ->
     @browser.fill("#message", "Calling Martha")
@@ -98,5 +100,5 @@ describe "iorooms", ->
     @browser.pressButton("#leaveRoom")
     socketID = @browser.evaluate("socket.socket.sessionid")
     waitFor =>
-      unless _.contains @server.io.rooms["/iorooms/room"], socketID
+      if not _.contains @server.io.rooms["/iorooms/room"], socketID
         done()

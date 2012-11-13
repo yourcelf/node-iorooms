@@ -12,8 +12,13 @@ class RoomManager extends events.EventEmitter
     @route = route or "/iorooms"
     @io = io
     @store = store
+
+    # Map of room names to a list of session ID's in that room
     @roomSessions = {}
+    # Map of session ID's to a list of rooms for that session
     @sessionRooms = {}
+    # Map of session ID's to a list of socket ID's for that session
+    @sessionSockets = {}
 
     _.extend this, options
 
@@ -36,6 +41,9 @@ class RoomManager extends events.EventEmitter
 
   saveSession: (session, callback) =>
     @store.set session.sid, session, callback
+
+  clearSession: (session, callback) =>
+    @store.destroy session.sid, callback
 
   setIOAuthorization: =>
     @io.set "authorization", (handshake, callback) =>
@@ -60,65 +68,75 @@ class RoomManager extends events.EventEmitter
 
   setIOConnection: =>
     @io.of(@route).on 'connection', (socket) =>
-      # Map socket ID to session on connection.  There may be multiple sockets
-      # per session, if one has multiple tabs/windows open.
       socket.session = socket.handshake.session
-      unless socket.session.sockets?
-        socket.session.sockets = []
-      socket.session.sockets.push(socket.id)
-      socket.on 'join', (data) => @join(socket, data.room)
-      socket.on 'leave', (data) => @leave(socket, data.room)
+      # Join a socket room based on the session ID, so that we can message all
+      # sockets for a particular session at once.
+      socket.join socket.session.sid
+      
+      # Establish a list of sockets connected under this session. We need this
+      # in order to determine whether a socket leaving/disconnecting
+      # constitutes the session leaving/disconnecting.
+      unless @sessionSockets[socket.session.sid]?
+        @sessionSockets[socket.session.sid] = []
+      @sessionSockets[socket.session.sid].push(socket.id)
+
+      socket.on 'join', (data) => @join(socket, data)
+      socket.on 'leave', (data) => @leave(socket, data)
       socket.on 'disconnect', (data) => @disconnect(socket)
 
   onChannel: (message, callback) ->
     @io.of(@route).on 'connection', (socket) ->
       socket.on message, (data) -> callback(socket, data)
 
-  join: (socket, room) =>
-    # Request to join a room.  Expects a data payload of the form:
-    # {
-    #   room: <room name>
-    # }
+  join: (socket, data) =>
+    room = data.room
     unless room?
       socket.emit "error", error: "Room not specified"
 
     @authorizeJoinRoom socket.session, room, (err) =>
       if err? then return socket.emit "error", error: err
       socket.join room
-      unless socket.session.rooms?
-        socket.session.rooms = []
-      first = _.contains socket.session.rooms, room
-      unless first
-        socket.session.rooms.push(room)
-        @saveSession(socket.session)
+
+      if not @roomSessions[room]?
+        @roomSessions[room] = []
+      if not @sessionRooms[socket.session.sid]
+        @sessionRooms[socket.session.sid] = []
+
+      first = not _.contains @roomSessions[room], socket.session.sid
+      if first
+        @roomSessions[room].push(socket.session.sid)
+        @sessionRooms[socket.session.sid].push(room)
+
       @emit "join", {
         socket: socket
         room: room
         first: first
       }
 
-  leave: (socket, room) =>
-    # Request to leave a room.  Expects a data payload of the form:
-    # {
-    #   room: <room name>
-    # }
+  leave: (socket, data) =>
+    room = data.room
     unless room?
       socket.emit "error", error: "Room not specified"
       return
     socket.leave(room)
 
-    # See if this session has socket connected to this room.
+    # See if this session has another socket connected to this room.
+    # Get the list of socket IDs connected to a room (list maintained by socket.io).
     roomClients = @io.rooms["#{@route}/#{room}"]
     otherSocketFound = false
-    if roomClients?
-      for socketID in socket.session.sockets
-        if roomClients[socketID]?
+    if roomClients? and @sessionSockets[socket.session.sid]?
+      # Iterate over all the sockets connected to this session, to see if those
+      # sockets are in this room.
+      for socketID in @sessionSockets[socket.session.sid]
+        if _.contains roomClients, socketID
           otherSocketFound = true
           break
 
-    if (not otherSocketFound) and socket.session.rooms?
-      socket.session.rooms = _.reject socket.session.rooms, (a) -> a == room
-      @saveSession(socket.session)
+    if not otherSocketFound
+      # Remove this session from the room.
+      sid = socket.session.sid
+      @roomSessions[room] = _.reject @roomSessions[room], (s) -> s == sid
+      @sessionRooms[sid] = _.reject @sessionRooms[sid], (r) -> r == room
 
     @emit "leave", {
       socket: socket
@@ -128,22 +146,36 @@ class RoomManager extends events.EventEmitter
 
   disconnect: (socket) =>
     # Disconnect the socket. Leave any rooms that the socket is in.
+    sessid = socket.session.sid
+    @sessionSockets[sessid] = _.reject @sessionSockets[sessid], (sockid) -> sockid == socket.id
+    if @sessionSockets[sessid].length == 0
+      delete @sessionSockets[sessid]
     if @io.roomClients[socket.id]?
-      for room, connected of @io.roomClients[socket.id]
+      for routeroom, connected of @io.roomClients[socket.id]
         # chomp off the route part to get the room name.
-        room = room.substring(@route.length + 1)
-        if room then @leave(socket, {room: room})
-    if socket.session.sockets?
-      socket.session.sockets = _.reject(socket.session.sockets, (a) -> a == socket.id)
-      @saveSession(socket.session)
+        room = routeroom.substring(@route.length + 1)
+        if room and @roomSessions[room]?
+          @leave(socket, {room: room})
+    socket.leave socket.session.sid
 
-  getSessionsInRoom: (room) =>
+  getSessionsInRoom: (room, cb) =>
+    if not @roomSessions[room]?.length
+      return cb(null, [])
     sessions = []
-    for sid, sessionStr of @store.sessions
-      session = JSON.parse(sessionStr)
-      if _.contains session.rooms, room
-        sessions.push(session)
-    return sessions
-
+    errors = []
+    count = @roomSessions[room].length
+    for sid in @roomSessions[room]
+      do (sid) =>
+        @store.get sid, (err, result) ->
+          if err?
+            errors.push(err)
+          else
+            sessions.push(result)
+          count -= 1
+          if count == 0
+            if errors.length == 0
+              cb(null, sessions)
+            else
+              cb(errors, null)
 
 module.exports = { RoomManager }
