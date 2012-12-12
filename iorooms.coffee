@@ -157,6 +157,7 @@ class RoomManager extends events.EventEmitter
         if room and @roomSessions[room]?
           @leave(socket, {room: room})
     socket.leave socket.session.sid
+    @emit "disconnect", { socket: socket }
 
   getSessionsInRoom: (room, cb) =>
     if not @roomSessions[room]?.length
